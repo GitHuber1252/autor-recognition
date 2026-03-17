@@ -1,0 +1,13 @@
+{
+    "require-dev": {
+        "phpunit/phpunit": "^11.5"
+    },
+    "require": {
+        "phpunit/php-token-stream": "^4.0"
+    },
+   
+    "autoload": {
+        "classmap": ["src/"]
+    }
+}
+
