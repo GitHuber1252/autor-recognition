@@ -1,10 +1,7 @@
 <?php
-require_once '../app/Service/ImageTextExtractor.php';
+require_once __DIR__ . '/../app/Controller/ResultController.php';
 
-$service = new ImageTextExtractor();
+$controller = new ResultController();
+$data = $controller->show();
 
-$file = $_GET['file'];
-$text = $service->extract('/var/www/uploads/' . $file);
-
-echo "<h1>Result:</h1>";
-echo "<p>$text</p>";
+require __DIR__ . '/../app/View/result.php';

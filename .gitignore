@@ -17,3 +17,9 @@ Thumbs.db
 
 # Игнорируем node_modules если есть фронтенд
 /node_modules/
+
+# AI artifacts and runtime data
+/ai/model/*.pth
+/ai/etalons/*
+!/ai/etalons/.gitkeep
+!/ai/model/.gitkeep

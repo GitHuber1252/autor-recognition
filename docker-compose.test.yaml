@@ -1,0 +1,22 @@
+services:
+  php-tests:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: autor-recognition-php-tests
+    volumes:
+      - ./src:/var/www
+      - ./composer.json:/var/www/composer.json:ro
+      - ./composer.lock:/var/www/composer.lock:ro
+      - ./phpunit.xml:/var/www/phpunit.xml:ro
+      - ./vendor:/var/www/vendor
+    command: ["vendor/bin/phpunit", "-c", "phpunit.xml"]
+
+  ai-tests:
+    build:
+      context: ./ai
+      dockerfile: Dockerfile
+    container_name: autor-recognition-ai-tests
+    volumes:
+      - ./ai:/app
+    command: ["python", "-m", "pytest", "-q"]

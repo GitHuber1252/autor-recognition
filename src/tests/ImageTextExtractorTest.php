@@ -1,5 +1,6 @@
 <?php
 use PHPUnit\Framework\TestCase;
+require_once __DIR__ . '/../app/Service/ImageTextExtractor.php';
 
 class ImageTextExtractorTest extends TestCase
 {
@@ -12,3 +13,4 @@ class ImageTextExtractorTest extends TestCase
         $this->assertIsString($result);
     }
 }
+

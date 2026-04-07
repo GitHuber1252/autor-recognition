@@ -1,6 +1,0 @@
-services:
-  tests:
-    image: autor-recognition-app
-    volumes:
-      - ./tests:/var/www/tests
-    command: phpunit tests

@@ -1,13 +1,24 @@
 <?php
+require_once __DIR__ . '/../Service/FileUploadService.php';
+
 class UploadController
 {
     public function upload()
     {
-        $file = $_FILES['image'];
+        $file = $_FILES['image'] ?? null;
+        if ($file === null) {
+            header('Location: /');
+            return;
+        }
 
-        $path = '/var/www/uploads/' . $file['name'];
-        move_uploaded_file($file['tmp_name'], $path);
+        $service = new FileUploadService('/var/www/uploads');
+        $result = $service->saveUploadedFile($file);
 
-        header("Location: /result.php?file=" . $file['name']);
+        if (!$result['success']) {
+            header('Location: /');
+            return;
+        }
+
+        header('Location: /result.php?file=' . urlencode($result['filename']));
     }
 }

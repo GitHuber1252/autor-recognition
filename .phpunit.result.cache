@@ -1,0 +1,1 @@
+{"version":2,"defects":{"ImageTextExtractorTest::testExtractTextFromImage":8},"times":{"AIInferenceServiceTest::testListEtalonsReturnsItems":0.018,"AIInferenceServiceTest::testListEtalonsHandlesInvalidFormat":0.001,"HomeControllerTest::testIndexReturnsDefaultUploadResultOnGet":0.005,"ImageTextExtractorTest::testExtractTextFromImage":0}}
