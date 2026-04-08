@@ -11,7 +11,7 @@ $uploadResult = $data['uploadResult'] ?? '';
             margin: 0;
             font-family: Arial, sans-serif;
             background-color: #0b0b0b;
-            color: #ffffff;
+            color: #111010;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -200,9 +200,7 @@ $uploadResult = $data['uploadResult'] ?? '';
         <button type="submit" class="btn">Проверить</button>
     </form>
 
-    <div class="small-note">
-        * Результат появится на этой странице после обработки
-    </div>
+    
 </div>
 
 <script>

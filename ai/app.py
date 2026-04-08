@@ -16,7 +16,6 @@ class SiameseNetwork(nn.Module):
         super().__init__()
         from torchvision import models
 
-        # Use uninitialized ResNet18 weights and then load your checkpoint weights.
         self.resnet = models.resnet18(weights=None)
         num_features = self.resnet.fc.in_features
         self.resnet.fc = nn.Sequential(
@@ -72,10 +71,9 @@ def _try_load_model() -> None:
 
 
 def dist_to_prob(distance: float, threshold: float = 0.3) -> float:
-    # Same mapping logic as your script: distance -> percentage
     k = 10.0
     prob = 1.0 / (1.0 + np.exp(k * (distance - threshold)))
-    return float(prob * 100.0)
+    return float(prob)   
 
 
 def preprocess_image(img: Image.Image) -> Image.Image:
@@ -114,6 +112,21 @@ def safe_etalon_filename(name: str) -> str:
     return base
 
 
+# ---- Вспомогательная функция для проверки, является ли файл изображением ----
+def validate_image_file(contents: bytes) -> Image.Image:
+    """
+    Проверяет, можно ли открыть байты как изображение.
+    Возвращает объект Image в режиме RGB или выбрасывает HTTPException.
+    """
+    try:
+        img = Image.open(io.BytesIO(contents))
+        # Принудительно конвертируем в RGB, чтобы отсечь неподдерживаемые режимы
+        img = img.convert("RGB")
+        return img
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=f"Invalid image file: {exc}")
+
+
 @app.on_event("startup")
 def startup_event() -> None:
     _try_load_model()
@@ -130,18 +143,13 @@ async def predict(image: UploadFile = File(...)) -> dict:
     if not model_loaded:
         raise HTTPException(status_code=500, detail=f"Model is not loaded: {model_load_error}")
 
-    if image.content_type is None or not image.content_type.startswith("image/"):
-        raise HTTPException(status_code=400, detail="Only image files are supported")
-
     etalon_paths = list_etalon_paths()
     if not etalon_paths:
         raise HTTPException(status_code=500, detail=f"No etalon images found in: {ETALON_DIR}")
 
     contents = await image.read()
-    try:
-        test_image = Image.open(io.BytesIO(contents)).convert("RGB")
-    except Exception as exc:
-        raise HTTPException(status_code=400, detail=f"Invalid image: {exc}") from exc
+    # Валидация и открытие изображения
+    test_image = validate_image_file(contents)
 
     test_tensor = transform_image(test_image)
 
@@ -168,18 +176,13 @@ def list_etalons() -> dict:
 
 @app.post("/etalons")
 async def upload_etalon(file: UploadFile = File(...)) -> dict:
-    if file.content_type is None or not file.content_type.startswith("image/"):
-        raise HTTPException(status_code=400, detail="Only image files are supported")
-
     os.makedirs(ETALON_DIR, exist_ok=True)
     filename = safe_etalon_filename(file.filename or "")
     destination = os.path.join(ETALON_DIR, filename)
     contents = await file.read()
 
-    try:
-        Image.open(io.BytesIO(contents)).convert("RGB")
-    except Exception as exc:
-        raise HTTPException(status_code=400, detail=f"Invalid image: {exc}") from exc
+    # Валидация изображения (если невалидно – выбросит исключение)
+    validate_image_file(contents)
 
     with open(destination, "wb") as f:
         f.write(contents)

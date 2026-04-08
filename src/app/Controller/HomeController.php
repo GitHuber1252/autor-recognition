@@ -1,7 +1,6 @@
 <?php
 
 require_once __DIR__ . '/../Service/FileUploadService.php';
-require_once __DIR__ . '/../Service/AIInferenceService.php';
 
 class HomeController
 {
@@ -36,14 +35,9 @@ class HomeController
             return '<p style="color: red;">Не удалось сохранить файл.</p>';
         }
 
-        $aiUrl = getenv('AI_API_URL') ?: 'http://python-ai:8000/predict';
-        $ai = new AIInferenceService($aiUrl);
-        $prediction = $ai->predictChance($result['path']);
-
-        if (!$prediction['success']) {
-            return '<p style="color: red;">Ошибка AI: ' . htmlspecialchars($prediction['error']) . '</p>';
-        }
-
-        return '<p style="color: #4caf50;">Chance: ' . number_format($prediction['chance'] * 100, 2) . '%</p>';
+        // Вместо вызова AI – редирект на страницу результата
+        $safeFileName = basename($result['path']);
+        header('Location: /result.php?file=' . urlencode($safeFileName) . '&fio=' . urlencode($fio));
+        exit;
     }
 }
