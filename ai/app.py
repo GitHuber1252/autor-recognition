@@ -131,6 +131,14 @@ def validate_image_file(contents: bytes) -> Image.Image:
 def startup_event() -> None:
     _try_load_model()
 
+@app.get("/")
+def root() -> dict:
+    """Корневой эндпоинт – приветствие и ссылка на документацию."""
+    return {
+        "message": "Handwriting AI API is running.",
+        "docs": "/docs",
+        "health": "/health"
+    }
 
 @app.get("/health")
 def health() -> dict:
