@@ -67,7 +67,14 @@ class AIInferenceService
                     return ['success' => false, 'chance' => null, 'error' => 'AI response does not contain valid chance'];
                 }
 
-                return ['success' => true, 'chance' => (float) $data['chance'], 'error' => null];
+                return [
+                    'success' => true,
+                    'chance' => (float) $data['chance'],
+                    'best_etalon' => isset($data['best_etalon']) && is_string($data['best_etalon']) ? $data['best_etalon'] : null,
+                    'best_etalon_person' => isset($data['best_etalon_person']) && is_string($data['best_etalon_person']) ? $data['best_etalon_person'] : null,
+                    'best_etalon_id' => isset($data['best_etalon_id']) && is_string($data['best_etalon_id']) ? $data['best_etalon_id'] : null,
+                    'error' => null
+                ];
             }
         }
 
@@ -100,24 +107,61 @@ class AIInferenceService
         if (!$response['success']) {
             return ['success' => false, 'items' => [], 'error' => $response['error']];
         }
+
         $items = $response['data']['items'] ?? [];
         if (!is_array($items)) {
             return ['success' => false, 'items' => [], 'error' => 'Invalid AI etalon list format'];
         }
-        return ['success' => true, 'items' => $items, 'error' => null];
+
+        $normalized = [];
+        foreach ($items as $item) {
+            if (is_string($item) && $item !== '') {
+                $normalized[] = ['filename' => $item, 'full_name' => null, 'id' => null];
+                continue;
+            }
+            if (!is_array($item)) {
+                continue;
+            }
+            $filename = $item['filename'] ?? $item['storage_filename'] ?? '';
+            if (!is_string($filename) || $filename === '') {
+                continue;
+            }
+            $normalized[] = [
+                'filename' => $filename,
+                'full_name' => isset($item['full_name']) && is_string($item['full_name']) ? $item['full_name'] : null,
+                'id' => isset($item['id']) && is_string($item['id']) ? $item['id'] : null,
+            ];
+        }
+
+        usort($normalized, static function (array $a, array $b): int {
+            return strcmp($a['filename'], $b['filename']);
+        });
+
+        return ['success' => true, 'items' => $normalized, 'error' => null];
     }
 
-    public function uploadEtalon(string $filePath, string $originalName): array
+    public function uploadEtalon(string $tmpPath, string $originalName, string $fio): array
     {
+        if (!is_file($tmpPath)) {
+            return ['success' => false, 'error' => 'Uploaded temp file is missing'];
+        }
         $payload = [
-            'file' => new CURLFile($filePath, mime_content_type($filePath) ?: 'application/octet-stream', $originalName),
+            'file' => new CURLFile($tmpPath, mime_content_type($tmpPath) ?: 'application/octet-stream', $originalName),
+            'fio' => $fio,
         ];
-        return $this->requestMultipart('POST', $this->baseUrl . '/etalons', $payload);
+
+        $aiUpload = $this->requestMultipart('POST', $this->baseUrl . '/etalons', $payload);
+        if (!$aiUpload['success']) {
+            return ['success' => false, 'error' => $aiUpload['error'] ?? 'Unknown error'];
+        }
+
+        return ['success' => true, 'error' => null];
     }
 
     public function deleteEtalon(string $filename): array
     {
-        return $this->requestMultipart('POST', $this->baseUrl . '/etalons/delete', ['filename' => $filename]);
+        $aiResult = $this->requestMultipart('POST', $this->baseUrl . '/etalons/delete', ['filename' => $filename]);
+        return $aiResult;
     }
 
     protected function requestJson(string $method, string $url): array
@@ -172,4 +216,5 @@ class AIInferenceService
         }
         return ['success' => true, 'error' => null];
     }
+
 }

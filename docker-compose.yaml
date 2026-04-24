@@ -1,4 +1,18 @@
 services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: autor-recognition-postgres
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=autor_recognition
+      - POSTGRES_USER=autor_user
+      - POSTGRES_PASSWORD=autor_pass
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
+    networks:
+      - app-network
+
   app:
     build:
       context: .
@@ -11,7 +25,13 @@ services:
       - ./composer.lock:/var/www/composer.lock:ro
     environment:
       - AI_API_URL=http://python-ai:8000/predict
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=autor_recognition
+      - DB_USER=autor_user
+      - DB_PASSWORD=autor_pass
     depends_on:
+      - postgres
       - python-ai
     networks:
       - app-network
@@ -24,11 +44,16 @@ services:
     restart: unless-stopped
     volumes:
       - ./ai/model:/app/model:ro
-      - ./ai/etalons:/app/etalons
     environment:
       - MODEL_PATH=/app/model/handwriting_expert_epoch_5.pth
-      - ETALON_DIR=/app/etalons
       - AI_THRESHOLD=0.3
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=autor_recognition
+      - DB_USER=autor_user
+      - DB_PASSWORD=autor_pass
+    depends_on:
+      - postgres
     networks:
       - app-network
 
@@ -50,3 +75,6 @@ services:
 networks:
   app-network:
     driver: bridge
+
+volumes:
+  postgres-data:

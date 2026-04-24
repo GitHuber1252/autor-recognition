@@ -4,6 +4,9 @@ $probability = $data['probability'] ?? null;
 $fio = $data['fio'] ?? null;
 $error = $data['error'] ?? null;
 $extractedText = $data['extractedText'] ?? null;
+$file = $data['file'] ?? null;
+$bestEtalon = $data['bestEtalon'] ?? null;
+$bestEtalonFio = $data['bestEtalonFio'] ?? null;
 ?>
 <!DOCTYPE html>
 <html lang="ru">
@@ -96,6 +99,46 @@ $extractedText = $data['extractedText'] ?? null;
             color: #f0c36d;
             margin-bottom: 1rem;
         }
+
+        .uploaded-image {
+            margin: 1rem auto 1.5rem;
+            max-width: 100%;
+            max-height: 320px;
+            border-radius: 12px;
+            border: 1px solid #333;
+            display: block;
+            object-fit: contain;
+            background: #1a1a1a;
+            padding: 4px;
+        }
+
+        .compare-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 16px;
+            margin: 1rem 0 1.5rem;
+            text-align: left;
+        }
+
+        .compare-card {
+            background-color: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 12px;
+            padding: 10px;
+        }
+
+        .compare-card h3 {
+            margin: 0 0 8px 0;
+            font-size: 1rem;
+            color: #f0c36d;
+        }
+
+        .compare-card .meta {
+            color: #bbbbbb;
+            font-size: 0.9rem;
+            margin: 6px 0 0 0;
+            word-break: break-word;
+        }
     </style>
 </head>
 <body>
@@ -107,11 +150,24 @@ $extractedText = $data['extractedText'] ?? null;
                 <?php echo htmlspecialchars($error); ?>
             </div>
         <?php elseif ($probability !== null): ?>
-            <p><strong>ФИО предполагаемого автора</strong><br>
-            <small><?php 
-                    // Форматируем вероятность (например, 95.26%)
-                    echo $fio; 
-                ?></small></p>
+            <?php if (!empty($file) || !empty($bestEtalon)): ?>
+                <div class="compare-grid">
+                    <?php if (!empty($file)): ?>
+                        <div class="compare-card">
+                            <h3>Фото для проверки</h3>
+                            <img class="uploaded-image" src="/image.php?id=<?php echo urlencode((string) $file); ?>" alt="Фото для проверки">
+                            <div class="meta">Введенное ФИО: <?php echo htmlspecialchars((string) $fio); ?></div>
+                        </div>
+                    <?php endif; ?>
+                    <?php if (!empty($bestEtalon)): ?>
+                        <div class="compare-card">
+                            <h3>Лучшее совпадение из эталонов</h3>
+                            <img class="uploaded-image" src="/image.php?filename=<?php echo urlencode((string) $bestEtalon); ?>" alt="Эталон">
+                            <div class="meta">ФИО из эталона: <?php echo htmlspecialchars((string) $bestEtalonFio); ?></div>
+                        </div>
+                    <?php endif; ?>
+                </div>
+            <?php endif; ?>
             
             <p><strong>ВЕРОЯТНОСТЬ АВТОРСТВА:</strong></p>
             <div class="probability">
@@ -120,6 +176,11 @@ $extractedText = $data['extractedText'] ?? null;
                     echo round($probability, 2) . '%'; 
                 ?>
             </div>
+
+            <?php if (!empty($bestEtalonFio)): ?>
+                <p><strong>Наиболее вероятный автор по эталону:</strong><br>
+                <small><?php echo htmlspecialchars((string) $bestEtalonFio); ?></small></p>
+            <?php endif; ?>
 
             <div class="recommendation">
                 Рекомендуем присылать скан документа, а не его фото,<br>

@@ -1,5 +1,7 @@
 <?php
 $uploadResult = $data['uploadResult'] ?? '';
+$items = $data['items'] ?? [];
+$galleryError = $data['galleryError'] ?? '';
 ?>
 <!DOCTYPE html>
 <html lang="ru">
@@ -89,6 +91,32 @@ $uploadResult = $data['uploadResult'] ?? '';
             display: none;
         }
 
+        .upload-empty {
+            display: block;
+        }
+
+        .upload-preview {
+            display: none;
+        }
+
+        .upload-preview img {
+            width: 100%;
+            max-height: 280px;
+            object-fit: contain;
+            border-radius: 12px;
+            border: 1px solid #444;
+            background: #101010;
+            padding: 6px;
+            box-sizing: border-box;
+        }
+
+        .upload-preview-note {
+            margin-top: 8px;
+            font-size: 14px;
+            color: #bbbbbb;
+            word-break: break-word;
+        }
+
         .upload-label {
             display: inline-block;
             background-color: #333;
@@ -153,6 +181,36 @@ $uploadResult = $data['uploadResult'] ?? '';
             margin-bottom: 20px;
             font-weight: bold;
         }
+
+        .samples-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 12px;
+            margin-top: 10px;
+        }
+
+        .sample-item {
+            background-color: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 12px;
+            padding: 8px;
+        }
+
+        .sample-item img {
+            width: 100%;
+            height: 110px;
+            object-fit: cover;
+            border-radius: 8px;
+            display: block;
+        }
+
+        .sample-name {
+            margin-top: 6px;
+            font-size: 12px;
+            color: #aaa;
+            word-break: break-all;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
@@ -189,10 +247,17 @@ $uploadResult = $data['uploadResult'] ?? '';
 
     <form method="post" enctype="multipart/form-data">
         <div class="upload-area">
-            <div>Перетащите файл или выберите в проводнике</div>
+            <div id="uploadEmpty" class="upload-empty">
+                <div>Перетащите файл или выберите в проводнике</div>
+                <label for="fileInput" class="upload-label">Выбрать файл</label>
+                <div style="margin-top: 8px; font-size: 14px;">Поддерживаются изображения и PDF</div>
+            </div>
+            <div id="uploadPreview" class="upload-preview">
+                <img id="previewImage" src="" alt="Предпросмотр загруженного фото">
+                <div id="previewNote" class="upload-preview-note"></div>
+                <label for="fileInput" class="upload-label" style="margin-top: 12px;">Выбрать другой файл</label>
+            </div>
             <input type="file" id="fileInput" name="document" accept="image/*, .pdf" />
-            <label for="fileInput" class="upload-label">Выбрать файл</label>
-            <div style="margin-top: 8px; font-size: 14px;">Поддерживаются изображения и PDF</div>
         </div>
 
         <input type="text" class="input-field" name="fio" placeholder="Введите ФИО для проверки авторства" />
@@ -200,15 +265,62 @@ $uploadResult = $data['uploadResult'] ?? '';
         <button type="submit" class="btn">Проверить</button>
     </form>
 
-    
+    <div class="block" style="margin-top: 32px;">
+        <div class="block-title">ФОТО ОБРАЗЦОВ В БАЗЕ</div>
+        <?php if ($galleryError !== ''): ?>
+            <div class="block-text"><?php echo htmlspecialchars($galleryError); ?></div>
+        <?php elseif (count($items) === 0): ?>
+            <div class="block-text">В базе пока нет загруженных образцов.</div>
+        <?php else: ?>
+            <div class="samples-grid">
+                <?php foreach ($items as $item): ?>
+                    <?php
+                        $filename = is_array($item) ? ($item['filename'] ?? '') : (string) $item;
+                        if ($filename === '') {
+                            continue;
+                        }
+                    ?>
+                    <div class="sample-item">
+                        <img src="/image.php?filename=<?php echo urlencode($filename); ?>" alt="Образец">
+                        <div class="sample-name"><?php echo htmlspecialchars($filename); ?></div>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+        <?php endif; ?>
+    </div>
 </div>
 
 <script>
     document.getElementById('fileInput').addEventListener('change', function (e) {
-        const fileName = e.target.files[0] ? e.target.files[0].name : '';
-        if (fileName) {
-            const label = document.querySelector('.upload-area div:first-child');
-            label.textContent = 'Выбран файл: ' + fileName;
+        const file = e.target.files[0] || null;
+        const emptyBlock = document.getElementById('uploadEmpty');
+        const previewBlock = document.getElementById('uploadPreview');
+        const previewImage = document.getElementById('previewImage');
+        const previewNote = document.getElementById('previewNote');
+
+        if (!file) {
+            emptyBlock.style.display = 'block';
+            previewBlock.style.display = 'none';
+            previewImage.removeAttribute('src');
+            previewNote.textContent = '';
+            return;
+        }
+
+        emptyBlock.style.display = 'none';
+        previewBlock.style.display = 'block';
+        previewNote.textContent = 'Выбран файл: ' + file.name;
+
+        if (file.type && file.type.startsWith('image/')) {
+            const objectUrl = URL.createObjectURL(file);
+            previewImage.src = objectUrl;
+            previewImage.style.display = 'block';
+            previewImage.onload = function () {
+                URL.revokeObjectURL(objectUrl);
+            };
+        } else {
+            previewImage.removeAttribute('src');
+            previewImage.style.display = 'none';
+            previewNote.textContent = 'Выбран PDF: ' + file.name;
         }
     });
 </script>

@@ -13,12 +13,18 @@ class AdminController
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $action = $_POST['action'] ?? '';
             if ($action === 'upload_etalon') {
-                if (!isset($_FILES['etalon']) || ($_FILES['etalon']['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
+                $fio = trim($_POST['fio'] ?? '');
+
+                if ($fio === '') {
+                    $error = 'Введите ФИО.';
+                } elseif (!isset($_FILES['etalon']) || ($_FILES['etalon']['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
                     $error = 'Выберите файл эталона для загрузки.';
                 } else {
                     $tmpPath = $_FILES['etalon']['tmp_name'];
                     $name = $_FILES['etalon']['name'] ?? 'etalon.jpg';
-                    $result = $ai->uploadEtalon($tmpPath, $name);
+
+                    $result = $ai->uploadEtalon($tmpPath, $name, $fio);
+
                     if ($result['success']) {
                         $message = 'Эталон успешно загружен.';
                     } else {

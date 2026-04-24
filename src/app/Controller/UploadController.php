@@ -11,14 +11,15 @@ class UploadController
             return;
         }
 
-        $service = new FileUploadService('/var/www/uploads');
-        $result = $service->saveUploadedFile($file);
+        $fio = trim($_POST['fio'] ?? 'unknown');
+        $service = new FileUploadService();
+        $result = $service->saveUploadedFile($file, $fio, 'probe');
 
         if (!$result['success']) {
             header('Location: /');
             return;
         }
 
-        header('Location: /result.php?file=' . urlencode($result['filename']));
+        header('Location: /result.php?probe_id=' . urlencode((string) ($result['id'] ?? '')) . '&fio=' . urlencode($fio));
     }
 }
