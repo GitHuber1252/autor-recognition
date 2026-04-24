@@ -1,0 +1,8 @@
+.git
+.gitignore
+.cursor
+node_modules
+vendor
+src/vendor
+src/composer.phar
+*.log

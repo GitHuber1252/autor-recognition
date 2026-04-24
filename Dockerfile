@@ -17,7 +17,7 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 # Install dependencies without generating autoload yet
 # (src/ is copied later)
-COPY composer.json composer.lock* ./
+COPY src/composer.json src/composer.lock* ./
 RUN composer install --no-interaction --no-progress --prefer-dist --no-autoloader
 
 # Copy application sources
