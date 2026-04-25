@@ -140,6 +140,9 @@ def startup_event() -> None:
     print("FILES:", os.listdir())
     print("MODEL EXISTS:", os.path.exists(MODEL_PATH))
     print("MODEL PATH:", MODEL_PATH)
+    print("ALL FILES RECURSIVE:")
+    for root, dirs, files in os.walk("."):
+        print(root, files)
 
 
 @app.get("/")
