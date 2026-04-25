@@ -34,8 +34,8 @@ RUN python3 -m venv /opt/venv \
     && /opt/venv/bin/pip install --no-cache-dir --retries 20 --timeout 180 -r requirements.txt \
     && /opt/venv/bin/pip install --no-cache-dir --index-url https://download.pytorch.org/whl/cpu torch==2.4.1 torchvision==0.19.1
 
-COPY ai/app.py ./app.py
-COPY ai/model/handwriting_expert_epoch_5.pth .
+COPY ai/ .
+
 
 
 # Bake model into the image (Option B)
