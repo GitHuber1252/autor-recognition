@@ -35,6 +35,8 @@ RUN python3 -m venv /opt/venv \
     && /opt/venv/bin/pip install --no-cache-dir --index-url https://download.pytorch.org/whl/cpu torch==2.4.1 torchvision==0.19.1
 
 COPY ai/app.py ./app.py
+COPY ai/model/handwriting_expert_epoch_5.pth .
+
 
 # Bake model into the image (Option B)
 RUN mkdir -p /app/model

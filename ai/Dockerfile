@@ -15,6 +15,8 @@ ENV PIP_EXTRA_INDEX_URL=${PIP_EXTRA_INDEX_URL}
 ENV PIP_TRUSTED_HOST=${PIP_TRUSTED_HOST}
 
 COPY requirements.txt .
+COPY model/handwriting_expert_epoch_5.pth .
+
 RUN python -m pip install --no-cache-dir --upgrade pip \
     && python -m pip install --no-cache-dir --retries 20 --timeout 180 -r requirements.txt \
     || (echo "Primary index failed, retrying with default PyPI URL" \
