@@ -131,6 +131,10 @@ def list_etalon_paths() -> list[str]:
 def startup_event() -> None:
     _try_load_model()
     os.makedirs(ETALON_DIR, exist_ok=True)
+    print("CWD:", os.getcwd())
+    print("FILES:", os.listdir())
+    print("MODEL EXISTS:", os.path.exists(MODEL_PATH))
+    print("MODEL PATH:", MODEL_PATH)
 
 
 @app.get("/")
@@ -141,13 +145,7 @@ def root() -> dict:
 @app.get("/health")
 def health() -> dict:
     etalon_count = len(list_etalon_paths())
-    return {
-        "ok": model_loaded and etalon_count > 0,
-        "error": model_load_error,
-        "etalon_count": etalon_count,
-        "model_path": MODEL_PATH,
-        "etalon_dir": ETALON_DIR,
-    }
+    return {"ok": model_loaded and etalon_count > 0, "error": model_load_error, "etalon_count": etalon_count}
 
 
 @app.post("/predict")
@@ -163,45 +161,28 @@ async def predict(image: UploadFile = File(...)) -> dict:
     test_image = validate_image_file(contents)
     test_tensor = transform_image(test_image)
 
-    try:
-        with torch.no_grad():
-            best_chance = 0.0
-            best_etalon_name = None
-            best_etalon_person = None
-            best_etalon_id = None
-            valid_etalons = 0
-            skipped_etalons: list[str] = []
-
-            for etalon_path in etalon_paths:
-                try:
-                    etalon_image = Image.open(etalon_path).convert("RGB")
-                    etalon_tensor = transform_image(etalon_image)
-                except Exception:
-                    skipped_etalons.append(os.path.basename(etalon_path))
-                    continue
-
-                valid_etalons += 1
-                out1, out2 = model(etalon_tensor, test_tensor)
-                distance = F.pairwise_distance(out1, out2).item()
-                chance = dist_to_prob(distance, THRESHOLD)
-                if chance > best_chance:
-                    best_chance = chance
-                    best_etalon_name = os.path.basename(etalon_path)
-                    best_etalon_person = None
-                    best_etalon_id = None
-    except Exception as exc:
-        raise HTTPException(status_code=500, detail=f"Inference failed: {exc}")
-
-    if valid_etalons == 0:
-        raise HTTPException(status_code=500, detail=f"All etalons are unreadable in: {ETALON_DIR}")
+    with torch.no_grad():
+        best_chance = 0.0
+        best_etalon_name = None
+        best_etalon_person = None
+        best_etalon_id = None
+        for etalon_path in etalon_paths:
+            etalon_image = Image.open(etalon_path).convert("RGB")
+            etalon_tensor = transform_image(etalon_image)
+            out1, out2 = model(etalon_tensor, test_tensor)
+            distance = F.pairwise_distance(out1, out2).item()
+            chance = dist_to_prob(distance, THRESHOLD)
+            if chance > best_chance:
+                best_chance = chance
+                best_etalon_name = os.path.basename(etalon_path)
+                best_etalon_person = None
+                best_etalon_id = None
 
     return {
         "chance": round(best_chance, 4),
         "best_etalon": best_etalon_name,
         "best_etalon_person": best_etalon_person,
         "best_etalon_id": best_etalon_id,
-        "valid_etalons": valid_etalons,
-        "skipped_etalons": skipped_etalons,
     }
 
 
