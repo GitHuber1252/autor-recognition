@@ -45,7 +45,7 @@ MODEL_PATH = os.getenv(
 THRESHOLD = float(os.getenv("AI_THRESHOLD", "0.3"))
 DEVICE = torch.device("cpu")
 
-DATA_DIR = os.getenv("DATA_DIR", "/data")
+DATA_DIR = os.path.join(BASE_DIR, "data")
 ETALON_DIR = os.path.join(DATA_DIR, "etalons")
 
 transform = transforms.Compose(
