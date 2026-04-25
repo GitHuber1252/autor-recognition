@@ -38,15 +38,14 @@ app = FastAPI(title="Handwriting AI", version="2.0.0")
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-MODEL_PATH = os.getenv(
-    "MODEL_PATH",
-    os.path.join(BASE_DIR, "ai", "model", "handwriting_expert_epoch_5.pth"),
-)
+MODEL_PATH = os.path.join(BASE_DIR, "model", "handwriting_expert_epoch_5.pth")
+
+DATA_DIR = BASE_DIR
+ETALON_DIR = os.path.join(BASE_DIR, "etalons")
 THRESHOLD = float(os.getenv("AI_THRESHOLD", "0.3"))
 DEVICE = torch.device("cpu")
 
-DATA_DIR = os.path.join(BASE_DIR, "data")
-ETALON_DIR = os.path.join(DATA_DIR, "etalons")
+
 
 transform = transforms.Compose(
     [
