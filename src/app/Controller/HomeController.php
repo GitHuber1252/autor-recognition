@@ -16,13 +16,8 @@ class HomeController
             $uploadResult = $this->handleUpload($fio, $_FILES['document']);
         }
 
-        $ai = new AIInferenceService($this->aiUrl());
-        $etalons = $ai->listEtalons();
-        if ($etalons['success']) {
-            $items = $etalons['items'] ?? [];
-        } else {
-            $galleryError = 'Не удалось загрузить фото образцов.';
-        }
+        $storage = new FileUploadService();
+        $items = $storage->listFiles('etalon');
 
         return [
             'uploadResult' => $uploadResult,
@@ -48,17 +43,18 @@ class HomeController
             return '<p style="color: red;">Не удалось сохранить файл.</p>';
         }
 
-        $probeId = $result['id'] ?? '';
-        if (!is_string($probeId) || $probeId === '') {
-            return '<p style="color: red;">Ошибка сохранения идентификатора загрузки.</p>';
+        $filename = (string) ($result['filename'] ?? '');
+        if ($filename === '') {
+            return '<p style="color: red;">Ошибка сохранения имени файла.</p>';
         }
 
-        header('Location: /result.php?probe_id=' . urlencode($probeId) . '&fio=' . urlencode($fio));
+        header('Location: /result.php?file=' . urlencode($filename) . '&fio=' . urlencode($fio));
         exit;
     }
 
     private function aiUrl(): string
     {
-        return getenv('AI_API_URL') ?: 'http://python-ai:8000/predict';
+        return getenv('AI_API_URL')
+            ?: (getenv('AI_INTERNAL_URL') ?: 'http://127.0.0.1:8000/predict');
     }
 }

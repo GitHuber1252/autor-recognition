@@ -1,12 +1,13 @@
 <?php
 
 require_once __DIR__ . '/../Service/AIInferenceService.php';
+require_once __DIR__ . '/../Service/FileUploadService.php';
 
 class AdminController
 {
     public function index(): array
     {
-        $ai = new AIInferenceService($this->aiUrl());
+        $storage = new FileUploadService();
         $message = '';
         $error = '';
 
@@ -20,10 +21,7 @@ class AdminController
                 } elseif (!isset($_FILES['etalon']) || ($_FILES['etalon']['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
                     $error = 'Выберите файл эталона для загрузки.';
                 } else {
-                    $tmpPath = $_FILES['etalon']['tmp_name'];
-                    $name = $_FILES['etalon']['name'] ?? 'etalon.jpg';
-
-                    $result = $ai->uploadEtalon($tmpPath, $name, $fio);
+                    $result = $storage->saveUploadedFile($_FILES['etalon'], $fio, 'etalon');
 
                     if ($result['success']) {
                         $message = 'Эталон успешно загружен.';
@@ -38,30 +36,22 @@ class AdminController
                 if ($filename === '') {
                     $error = 'Не выбран файл для удаления.';
                 } else {
-                    $result = $ai->deleteEtalon($filename);
-                    if ($result['success']) {
+                    $deleted = $storage->deleteFile('etalon', $filename);
+                    if ($deleted) {
                         $message = 'Эталон удален.';
                     } else {
-                        $error = 'Ошибка удаления эталона: ' . htmlspecialchars($result['error'] ?? 'Unknown error');
+                        $error = 'Ошибка удаления эталона.';
                     }
                 }
             }
         }
 
-        $etalons = $ai->listEtalons();
-        if (!$etalons['success']) {
-            $error = $error !== '' ? $error : ('Ошибка получения списка эталонов: ' . htmlspecialchars($etalons['error'] ?? 'Unknown error'));
-        }
+        $items = $storage->listFiles('etalon');
 
         return [
             'message' => $message,
             'error' => $error,
-            'items' => $etalons['items'] ?? [],
+            'items' => $items,
         ];
-    }
-
-    private function aiUrl(): string
-    {
-        return getenv('AI_API_URL') ?: 'http://python-ai:8000/predict';
     }
 }

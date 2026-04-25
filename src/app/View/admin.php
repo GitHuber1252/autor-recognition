@@ -127,7 +127,7 @@ function extractFio($filename) {
                     }
                 ?>
                 <div class="item">
-                    <img src="/image.php?filename=<?php echo urlencode($filename); ?>" alt="">
+                    <img src="/image.php?kind=etalon&file=<?php echo urlencode($filename); ?>" alt="">
 
                     <div class="fio">
                         <?php

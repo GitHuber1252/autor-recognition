@@ -281,7 +281,7 @@ $galleryError = $data['galleryError'] ?? '';
                         }
                     ?>
                     <div class="sample-item">
-                        <img src="/image.php?filename=<?php echo urlencode($filename); ?>" alt="Образец">
+                        <img src="/image.php?kind=etalon&file=<?php echo urlencode($filename); ?>" alt="Образец">
                         <div class="sample-name"><?php echo htmlspecialchars($filename); ?></div>
                     </div>
                 <?php endforeach; ?>

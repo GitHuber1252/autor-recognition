@@ -155,14 +155,14 @@ $bestEtalonFio = $data['bestEtalonFio'] ?? null;
                     <?php if (!empty($file)): ?>
                         <div class="compare-card">
                             <h3>Фото для проверки</h3>
-                            <img class="uploaded-image" src="/image.php?id=<?php echo urlencode((string) $file); ?>" alt="Фото для проверки">
+                            <img class="uploaded-image" src="/image.php?kind=probe&file=<?php echo urlencode((string) $file); ?>" alt="Фото для проверки">
                             <div class="meta">Введенное ФИО: <?php echo htmlspecialchars((string) $fio); ?></div>
                         </div>
                     <?php endif; ?>
                     <?php if (!empty($bestEtalon)): ?>
                         <div class="compare-card">
                             <h3>Лучшее совпадение из эталонов</h3>
-                            <img class="uploaded-image" src="/image.php?filename=<?php echo urlencode((string) $bestEtalon); ?>" alt="Эталон">
+                            <img class="uploaded-image" src="/image.php?kind=etalon&file=<?php echo urlencode((string) $bestEtalon); ?>" alt="Эталон">
                             <div class="meta">ФИО из эталона: <?php echo htmlspecialchars((string) $bestEtalonFio); ?></div>
                         </div>
                     <?php endif; ?>

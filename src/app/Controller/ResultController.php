@@ -2,19 +2,18 @@
 
 require_once __DIR__ . '/../Service/ImageTextExtractor.php';
 require_once __DIR__ . '/../Service/AIInferenceService.php';
-require_once __DIR__ . '/../Repository/ImageRepository.php';
-require_once __DIR__ . '/../Repository/ComparisonRepository.php';
+require_once __DIR__ . '/../Service/FileUploadService.php';
 require_once __DIR__ . '/../../vendor/autoload.php';
-
-use Ramsey\Uuid\Uuid;
 
 class ResultController
 {
     public function show(): array
     {
-        $probeId = trim((string) ($_GET['probe_id'] ?? ''));
+        $file = trim((string) ($_GET['file'] ?? ''));
         $fio = trim((string) ($_GET['fio'] ?? ''));
-        if ($probeId === '') {
+        $safeFile = basename($file);
+
+        if ($safeFile === '') {
             return [
                 'title' => 'Результат проверки',
                 'probability' => null,
@@ -27,14 +26,13 @@ class ResultController
             ];
         }
 
-        $imageRepo = new ImageRepository();
-        $comparisonRepo = new ComparisonRepository();
-        $probe = $imageRepo->getById($probeId);
-        if ($probe === null || ($probe['kind'] ?? '') !== 'probe') {
+        $storage = new FileUploadService();
+        $probePath = $storage->getKindDir('probe') . DIRECTORY_SEPARATOR . $safeFile;
+        if (!is_file($probePath)) {
             return [
                 'title' => 'Результат проверки',
                 'probability' => null,
-                'error' => 'Загруженное изображение не найдено в базе.',
+                'error' => 'Загруженное изображение не найдено.',
                 'extractedText' => null,
                 'fio' => $fio,
                 'file' => null,
@@ -44,35 +42,7 @@ class ResultController
         }
 
         $ai = new AIInferenceService($this->aiUrl());
-        $tmpPath = tempnam(sys_get_temp_dir(), 'probe_');
-        if ($tmpPath === false) {
-            return [
-                'title' => 'Результат проверки',
-                'probability' => null,
-                'error' => 'Не удалось подготовить файл для сравнения.',
-                'extractedText' => null,
-                'fio' => $fio,
-                'file' => $probe['id'],
-                'bestEtalon' => null,
-                'bestEtalonFio' => null,
-            ];
-        }
-        $probeContent = $this->blobToString($probe['content'] ?? null);
-        if ($probeContent === null) {
-            return [
-                'title' => 'Результат проверки',
-                'probability' => null,
-                'error' => 'Не удалось прочитать изображение из базы.',
-                'extractedText' => null,
-                'fio' => $fio,
-                'file' => $probe['id'],
-                'bestEtalon' => null,
-                'bestEtalonFio' => null,
-            ];
-        }
-        file_put_contents($tmpPath, $probeContent);
-        $aiResult = $ai->predictChance($tmpPath);
-        @unlink($tmpPath);
+        $aiResult = $ai->predictChance($probePath);
 
         if (!$aiResult['success']) {
             return [
@@ -80,8 +50,8 @@ class ResultController
                 'probability' => null,
                 'error' => $aiResult['error'] ?? 'Ошибка сравнения с эталонами.',
                 'extractedText' => null,
-                'fio' => $fio !== '' ? $fio : ($probe['full_name'] ?? ''),
-                'file' => $probe['id'],
+                'fio' => $fio,
+                'file' => $safeFile,
                 'bestEtalon' => null,
                 'bestEtalonFio' => null,
             ];
@@ -92,31 +62,13 @@ class ResultController
         $bestEtalonFio = isset($aiResult['best_etalon_person']) && is_string($aiResult['best_etalon_person']) && $aiResult['best_etalon_person'] !== ''
             ? $aiResult['best_etalon_person']
             : ($bestEtalon !== null ? $this->extractFioFromFilename($bestEtalon) : null);
-        $bestEtalonId = isset($aiResult['best_etalon_id']) && is_string($aiResult['best_etalon_id']) ? $aiResult['best_etalon_id'] : null;
         
         $extractedText = null;
         try {
             $service = new ImageTextExtractor();
-            $ocrTmpPath = tempnam(sys_get_temp_dir(), 'ocr_');
-            if ($ocrTmpPath !== false) {
-                file_put_contents($ocrTmpPath, $probeContent);
-                $extractedText = $service->extract($ocrTmpPath);
-                @unlink($ocrTmpPath);
-            }
+            $extractedText = $service->extract($probePath);
         } catch (Exception $e) {
             $extractedText = 'Ошибка распознавания текста: ' . $e->getMessage();
-        }
-
-        try {
-            $comparisonRepo->save(
-                Uuid::uuid4()->toString(),
-                $probeId,
-                $bestEtalonId,
-                $fio !== '' ? $fio : (string) ($probe['full_name'] ?? ''),
-                $probability
-            );
-        } catch (Throwable $e) {
-            error_log('Failed to save comparison: ' . $e->getMessage());
         }
 
         return [
@@ -124,8 +76,8 @@ class ResultController
             'probability' => $probability,
             'error' => null,
             'extractedText' => $extractedText,
-            'fio' => $fio !== '' ? $fio : (string) ($probe['full_name'] ?? ''),
-            'file' => $probe['id'],
+            'fio' => $fio,
+            'file' => $safeFile,
             'bestEtalon' => $bestEtalon,
             'bestEtalonFio' => $bestEtalonFio,
         ];
@@ -150,18 +102,7 @@ class ResultController
 
     private function aiUrl(): string
     {
-        return getenv('AI_API_URL') ?: 'http://python-ai:8000/predict';
-    }
-
-    private function blobToString($value): ?string
-    {
-        if (is_string($value)) {
-            return $value;
-        }
-        if (is_resource($value)) {
-            $content = stream_get_contents($value);
-            return is_string($content) ? $content : null;
-        }
-        return null;
+        return getenv('AI_API_URL')
+            ?: (getenv('AI_INTERNAL_URL') ?: 'http://127.0.0.1:8000/predict');
     }
 }

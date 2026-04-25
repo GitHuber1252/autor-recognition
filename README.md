@@ -7,9 +7,9 @@
 - `src/` - PHP-приложение (контроллеры, сервисы, представления, публичные точки входа)
 - `ai/` - FastAPI-сервис ИИ
 - `ai/model/` - файл модели (`handwriting_expert_epoch_5.pth`)
-- `docker/postgres/init/` - SQL-схема для PostgreSQL
+- `docker/` - конфигурация nginx/supervisor/entrypoint для Railway
 
-Изображения эталонов и проверок хранятся в PostgreSQL (BYTEA), а не в папках.
+Изображения эталонов и проверок хранятся в папке на диске (Railway Volume): `/data/etalons` и `/data/probes`.
 
 ## Локальный запуск (Docker Compose)
 
@@ -30,52 +30,36 @@ docker compose up --build
 docker compose down
 ```
 
-Сброс базы:
-
-```bash
-docker compose down -v
-```
-
 ## Деплой на Railway
 
-Нужно 3 сервиса:
+Нужно 1 сервис (Web + AI внутри одного контейнера) из `Dockerfile.railway` + Volume для хранения файлов.
 
-1. **Postgres** (Railway plugin)
-2. **AI service** (из `ai/Dockerfile`)
-3. **Web service** (из `Dockerfile.railway`)
-
-### 1) Postgres
-
-- Добавьте PostgreSQL plugin в проект Railway.
-- Скопируйте переменные подключения в сервисы `web` и `ai`:
-  - `DB_HOST`
-  - `DB_PORT`
-  - `DB_NAME`
-  - `DB_USER`
-  - `DB_PASSWORD`
-
-### 2) AI service
-
-- New Service -> Deploy from GitHub Repo
-- Root Directory: `ai`
-- Dockerfile Path: `ai/Dockerfile`
-- Переменные:
-  - DB-переменные (из Postgres)
-  - `MODEL_PATH=/app/model/handwriting_expert_epoch_5.pth`
-  - `AI_THRESHOLD=0.3`
-- Файл модели добавьте как Volume/attached storage в `ai/model`.
-
-### 3) Web service
+### 1) App service (web+ai)
 
 - New Service -> Deploy from GitHub Repo
 - Root Directory: `.`
 - Dockerfile Path: `Dockerfile.railway`
-- Переменные:
-  - DB-переменные (из Postgres)
-  - `AI_API_URL=http://<ai-service-internal-url>/predict`
-    - внутренний URL берите из Railway Networking у AI сервиса.
 
-После деплоя откройте домен web-сервиса.
+Переменные:
+
+- `MODEL_PATH=/app/model/handwriting_expert_epoch_5.pth`
+- `AI_THRESHOLD=0.3`
+- (опционально) `DATA_DIR=/data` (по умолчанию уже `/data`)
+
+### 2) Volume (обязательно)
+
+Добавьте Railway Volume и смонтируйте в контейнер **в `/data`**.
+Приложение само создаст папки:
+
+- `/data/etalons`
+- `/data/probes`
+
+### 3) Model file
+
+Файл модели добавьте как Volume/attached storage так, чтобы он оказался по пути из `MODEL_PATH`
+(например `/app/model/handwriting_expert_epoch_5.pth`).
+
+После деплоя откройте домен этого сервиса (это и есть сайт).
 
 ## Тесты
 

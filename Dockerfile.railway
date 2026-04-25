@@ -1,16 +1,20 @@
-FROM php:8.2-fpm
+# Pin to Debian bookworm so Python is 3.11 (wheels available for numpy/opencv/torch).
+FROM php:8.2-fpm-bookworm
 
 WORKDIR /var/www
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         nginx \
+        supervisor \
         gettext-base \
+        python3 \
+        python3-pip \
+        python3-venv \
         unzip \
         libcurl4-openssl-dev \
-        libpq-dev \
         libzip-dev \
-    && docker-php-ext-install curl zip pdo_pgsql pgsql \
+    && docker-php-ext-install curl zip \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
@@ -23,6 +27,23 @@ RUN composer dump-autoload --optimize
 
 COPY docker/nginx/railway.conf.template /etc/nginx/templates/default.conf.template
 
-ENV PORT=8080
+WORKDIR /opt/ai
+COPY ai/requirements.txt ./requirements.txt
+RUN python3 -m venv /opt/venv \
+    && /opt/venv/bin/pip install --no-cache-dir --upgrade pip \
+    && /opt/venv/bin/pip install --no-cache-dir --retries 20 --timeout 180 -r requirements.txt \
+    && /opt/venv/bin/pip install --no-cache-dir --index-url https://download.pytorch.org/whl/cpu torch==2.4.1 torchvision==0.19.1
 
-CMD ["/bin/sh", "-c", "envsubst '$PORT' < /etc/nginx/templates/default.conf.template > /etc/nginx/conf.d/default.conf && php-fpm -D && nginx -g 'daemon off;'"]
+COPY ai/app.py ./app.py
+
+WORKDIR /var/www
+
+COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+COPY docker/entrypoint.sh /entrypoint.sh
+RUN sed -i 's/\r$//' /entrypoint.sh && chmod +x /entrypoint.sh
+
+ENV PORT=8080
+ENV AI_INTERNAL_URL=http://127.0.0.1:8000/predict
+ENV DATA_DIR=/data
+
+CMD ["/entrypoint.sh"]

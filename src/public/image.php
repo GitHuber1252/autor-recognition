@@ -1,45 +1,30 @@
 <?php
 
-require_once __DIR__ . '/../app/Repository/ImageRepository.php';
+require_once __DIR__ . '/../app/Service/FileUploadService.php';
 
-$repo = new ImageRepository();
-$image = null;
+$kind = trim((string) ($_GET['kind'] ?? ''));
+$filename = trim((string) ($_GET['file'] ?? ''));
 
-$id = trim((string) ($_GET['id'] ?? ''));
-$filename = trim((string) ($_GET['filename'] ?? ''));
+$kind = $kind === 'etalon' ? 'etalon' : 'probe';
+$safe = basename($filename);
 
-if ($id !== '') {
-    $image = $repo->getById($id);
-} elseif ($filename !== '') {
-    $image = $repo->getByStorageFilename($filename);
-}
-
-if ($image === null) {
+if ($safe === '' || $safe === '.' || $safe === '..') {
     http_response_code(404);
     header('Content-Type: text/plain; charset=utf-8');
     echo 'Image not found';
     exit;
 }
 
-$raw = $image['content'] ?? null;
-$content = null;
-if (is_string($raw)) {
-    $content = $raw;
-} elseif (is_resource($raw)) {
-    $streamData = stream_get_contents($raw);
-    if (is_string($streamData)) {
-        $content = $streamData;
-    }
-}
-
-if (!is_string($content) || $content === '') {
+$storage = new FileUploadService();
+$path = $storage->getKindDir($kind) . DIRECTORY_SEPARATOR . $safe;
+if (!is_file($path)) {
     http_response_code(404);
     header('Content-Type: text/plain; charset=utf-8');
-    echo 'Image content is empty';
+    echo 'Image not found';
     exit;
 }
 
-$mimeType = (string) ($image['mime_type'] ?? 'application/octet-stream');
+$mimeType = function_exists('mime_content_type') ? (string) (mime_content_type($path) ?: 'application/octet-stream') : 'application/octet-stream';
 header('Content-Type: ' . $mimeType);
 header('Cache-Control: public, max-age=300');
-echo $content;
+readfile($path);
