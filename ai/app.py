@@ -36,7 +36,12 @@ class SiameseNetwork(nn.Module):
 
 app = FastAPI(title="Handwriting AI", version="2.0.0")
 
-MODEL_PATH = os.getenv("MODEL_PATH", "/app/model/handwriting_expert_epoch_5.pth")
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+MODEL_PATH = os.getenv(
+    "MODEL_PATH",
+    os.path.join(BASE_DIR, "ai", "model", "handwriting_expert_epoch_5.pth"),
+)
 THRESHOLD = float(os.getenv("AI_THRESHOLD", "0.3"))
 DEVICE = torch.device("cpu")
 
