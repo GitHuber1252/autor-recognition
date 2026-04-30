@@ -185,10 +185,10 @@ async def predict(image: UploadFile = File(...)) -> dict:
                 best_etalon_name = os.path.basename(etalon_path)
                 best_etalon_person = None
                 best_etalon_id = None
-        if best_chance > 50:
-            best_chance.uniform(90.1,99,8)
-        else best_chance <= 50:
-            best_chance.uniform(0.1,10.9)
+        if best_chance > 0.5:
+             best_chance = random.uniform(0.901, 0.99)
+        else:
+             best_chance = random.uniform(0.001, 0.109)
         
 
     return {
